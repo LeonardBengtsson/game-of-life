@@ -3,6 +3,8 @@ const Allocator = @import("std").mem.Allocator;
 pub const Size = u16;
 const Epoch = u32;
 
+const BoardError = error{ GetCell, SetCell };
+
 const Cell = struct {
     alive: bool,
     neighbours: u8,
@@ -15,8 +17,12 @@ pub const Game = struct {
     board: []Cell,
     epoch: Epoch,
 
-    pub fn create(allocator: Allocator, sx: Size, sy: Size) !Game {
+    pub fn create(allocator: Allocator, sx: Size, sy: Size, init_pattern: fn (sx: Size, sy: Size, i: Size) bool) !Game {
         const board = try allocator.alloc(Cell, sx * sy);
+        for (board, 0..) |*cell, i| {
+            cell.alive = init_pattern(sx, sy, @intCast(i));
+            cell.neighbours = 0;
+        }
         return Game{
             .allocator = allocator,
             .sx = sx,
@@ -26,42 +32,61 @@ pub const Game = struct {
         };
     }
 
-    pub fn deinit(self: Game) void {
+    pub fn deinit(self: *Game) void {
         self.allocator.free(self.board);
     }
 
-    pub fn cycle(self: Game) void {
-        const size = self.sx * self.sy;
-        for (0..self.sx) |x| {
-            for (0..self.sy) |y| {
+    pub fn determineNeighbors(self: *Game, x: Size, y: Size) BoardError!u8 {
+        if (x >= self.sx or y >= self.sy) return BoardError.GetCell;
+
+        var neighbors: u8 = 0;
+        if (try self.getCell((x + self.sx - 1) % self.sx, (y + self.sy - 1) % self.sy)) neighbors += 1;
+        if (try self.getCell((x + self.sx - 1) % self.sx, y)) neighbors += 1;
+        if (try self.getCell((x + self.sx - 1) % self.sx, (y + 1) % self.sy)) neighbors += 1;
+        if (try self.getCell(x, (y + self.sy - 1) % self.sy)) neighbors += 1;
+        if (try self.getCell(x, (y + 1) % self.sy)) neighbors += 1;
+        if (try self.getCell((x + 1) % self.sx, (y + self.sy - 1) % self.sy)) neighbors += 1;
+        if (try self.getCell((x + 1) % self.sx, y)) neighbors += 1;
+        if (try self.getCell((x + 1) % self.sx, (y + 1) % self.sy)) neighbors += 1;
+        return neighbors;
+    }
+
+    pub fn cycle(self: *Game) void {
+        // const size = self.sx * self.sy;
+        for (0..self.sx) |x_usize| {
+            const x: Size = @intCast(x_usize);
+            for (0..self.sy) |y_usize| {
+                const y: Size = @intCast(y_usize);
+
                 const pos = x + self.sx * y;
-                var neighbors = 0;
-                neighbors += self.isAlive((pos + size - self.sx) % size) catch unreachable;
-                neighbors += self.isAlive((pos + self.sx) % size) catch unreachable;
-                if (x == 0) {
-                    neighbors += self.isAlive((pos + size - 1) % size) catch unreachable;
-                    neighbors += self.isAlive((pos + self.sx - 1) % size) catch unreachable;
-                    neighbors += self.isAlive((pos + 2 * self.sx - 1) % size) catch unreachable;
-                } else {
-                    neighbors += self.isAlive((pos + size - self.sx - 1) % size) catch unreachable;
-                    neighbors += self.isAlive(pos - 1) catch unreachable;
-                    neighbors += self.isAlive((pos + self.sx - 1) % size) catch unreachable;
-                }
-                if (x == self.sx - 1) {
-                    neighbors += self.isAlive((pos + size - 2 * self.sx + 1) % size) catch unreachable;
-                    neighbors += self.isAlive((pos + size - self.sx + 1) % size) catch unreachable;
-                    neighbors += self.isAlive((pos + 1) % size) catch unreachable;
-                } else {
-                    neighbors += self.isAlive((pos + size + self.sx - 1) % size) catch unreachable;
-                    neighbors += self.isAlive(pos + 1) catch unreachable;
-                    neighbors += self.isAlive((pos + self.sx + 1) % size) catch unreachable;
-                }
-                self.board[pos].neighbours = neighbors;
+                self.board[pos].neighbours = self.determineNeighbors(x, y) catch unreachable;
+                // var neighbors: u8 = 0;
+                // neighbors += self.isAlive((pos + size - self.sx) % size) catch unreachable;
+                // neighbors += self.isAlive((pos + self.sx) % size) catch unreachable;
+                // if (x == 0) {
+                //     neighbors += self.isAlive((pos + size - 1) % size) catch unreachable;
+                //     neighbors += self.isAlive((pos + self.sx - 1) % size) catch unreachable;
+                //     neighbors += self.isAlive((pos + 2 * self.sx - 1) % size) catch unreachable;
+                // } else {
+                //     neighbors += self.isAlive((pos + size - self.sx - 1) % size) catch unreachable;
+                //     neighbors += self.isAlive(pos - 1) catch unreachable;
+                //     neighbors += self.isAlive((pos + self.sx - 1) % size) catch unreachable;
+                // }
+                // if (x == self.sx - 1) {
+                //     neighbors += self.isAlive((pos + size - 2 * self.sx + 1) % size) catch unreachable;
+                //     neighbors += self.isAlive((pos + size - self.sx + 1) % size) catch unreachable;
+                //     neighbors += self.isAlive((pos + 1) % size) catch unreachable;
+                // } else {
+                //     neighbors += self.isAlive((pos + size + self.sx - 1) % size) catch unreachable;
+                //     neighbors += self.isAlive(pos + 1) catch unreachable;
+                //     neighbors += self.isAlive((pos + self.sx + 1) % size) catch unreachable;
+                // }
+                // self.board[pos].neighbours = neighbors;
             }
         }
-        for (self.board) |cell| {
+        for (self.board) |*cell| {
             if (cell.alive) {
-                cell.alive = cell.neighbours == 2 || (cell.neighbours == 3);
+                cell.alive = cell.neighbours == 2 or cell.neighbours == 3;
             } else {
                 cell.alive = cell.neighbours == 3;
             }
@@ -69,8 +94,18 @@ pub const Game = struct {
         self.epoch += 1;
     }
 
-    fn isAlive(self: Game, pos: Size) !u8 {
-        if (pos >= self.sx * self.sy) return error{};
+    pub fn getCell(self: *Game, x: Size, y: Size) BoardError!bool {
+        if ((x >= self.sx) or (y >= self.sy)) return BoardError.GetCell;
+        return self.board[x + self.sx * y].alive;
+    }
+
+    pub fn setCell(self: *Game, x: Size, y: Size, toggle: bool) BoardError!void {
+        if ((x >= self.sx) or (y >= self.sy)) return BoardError.SetCell;
+        self.board[x + self.sx * y].alive = toggle;
+    }
+
+    fn isAlive(self: Game, pos: Size) BoardError!u8 {
+        if (pos >= self.sx * self.sy) return BoardError.GetCell;
         return if (self.board[pos].alive) 1 else 0;
     }
 };
