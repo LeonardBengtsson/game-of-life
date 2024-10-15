@@ -36,6 +36,13 @@ pub const Game = struct {
         self.allocator.free(self.board);
     }
 
+    pub fn reset(self: *Game, init_pattern: fn (sx: Size, sy: Size, i: Size) bool) void {
+        for (self.board, 0..) |*cell, i| {
+            cell.alive = init_pattern(self.sx, self.sy, @intCast(i));
+            cell.neighbours = 0;
+        }
+    }
+
     pub fn determineNeighbors(self: *Game, x: Size, y: Size) BoardError!u8 {
         if (x >= self.sx or y >= self.sy) return BoardError.GetCell;
 
@@ -79,10 +86,5 @@ pub const Game = struct {
     pub fn setCell(self: *Game, x: Size, y: Size, toggle: bool) BoardError!void {
         if ((x >= self.sx) or (y >= self.sy)) return BoardError.SetCell;
         self.board[x + self.sx * y].alive = toggle;
-    }
-
-    fn isAlive(self: Game, pos: Size) BoardError!u8 {
-        if (pos >= self.sx * self.sy) return BoardError.GetCell;
-        return if (self.board[pos].alive) 1 else 0;
     }
 };

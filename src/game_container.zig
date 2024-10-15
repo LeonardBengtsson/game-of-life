@@ -1,6 +1,8 @@
 const std = @import("std");
-const ncurses = @import("ncurses.zig");
+
 const Game = @import("game_of_life.zig").Game;
+const ncurses = @import("ncurses.zig");
+const init_patterns = @import("init_patterns.zig");
 
 const ALIVE_CELL_CHAR = 'O';
 const DEAD_CELL_CHAR = ' ';
@@ -29,6 +31,12 @@ const GameContainer = struct {
             const input = try ncurses.getInput();
             switch (input) {
                 'q' => return,
+                'c' => {
+                    self.game.reset(init_patterns.allDead);
+                },
+                'r' => {
+                    self.game.reset(init_patterns.random);
+                },
                 'x' => {
                     const cell = try self.game.getCell(@intCast(self.cursor_x), @intCast(self.cursor_y));
                     try self.game.setCell(@intCast(self.cursor_x), @intCast(self.cursor_y), !cell);
