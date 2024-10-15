@@ -20,6 +20,7 @@ pub fn main() !void {
     const allocator = arena.allocator();
 
     const dims = ncurses.getDimensions();
+    try init_patterns.initRandom();
     var game = try Game.create(allocator, @intCast(dims.@"0"), @intCast(dims.@"1"), INIT_PATTERN);
     defer game.deinit();
 

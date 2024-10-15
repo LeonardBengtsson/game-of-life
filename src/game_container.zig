@@ -2,8 +2,8 @@ const std = @import("std");
 const ncurses = @import("ncurses.zig");
 const Game = @import("game_of_life.zig").Game;
 
-const CELL_CHAR = '#';
-const EMPTY_CHAR = '.';
+const ALIVE_CELL_CHAR = 'O';
+const DEAD_CELL_CHAR = ' ';
 const DEFAULT_FPS = 20;
 const DEFAULT_DELAY = 5 * std.time.ns_per_ms;
 const WRAP_CURSOR_MOVEMENT = true;
@@ -75,7 +75,7 @@ const GameContainer = struct {
             for (0..self.screen_h) |y_usize| {
                 const y: u16 = @intCast(y_usize);
                 const cell: bool = self.game.getCell(x, y) catch continue;
-                const char: u8 = if (cell) CELL_CHAR else EMPTY_CHAR;
+                const char: u8 = if (cell) ALIVE_CELL_CHAR else DEAD_CELL_CHAR;
                 try ncurses.setCharacterAt(x, y, char);
             }
         }

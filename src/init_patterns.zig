@@ -5,11 +5,12 @@ const Size = @import("game_of_life.zig").Size;
 var rand: ?std.Random = null;
 
 pub fn initRandom() !void {
-    rand = std.Random.DefaultPrng.init(blk: {
+    var r = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
         break :blk seed;
-    }).random();
+    });
+    rand = r.random();
 }
 
 pub fn allDead(_: Size, _: Size, _: Size) bool {
