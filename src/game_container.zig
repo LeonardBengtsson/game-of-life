@@ -123,36 +123,3 @@ pub fn start(game: *Game) !void {
 
     try container.inputLoop();
 }
-
-pub fn debug_pattern() !void {
-    var i: u32 = 0;
-    while (true) {
-        i += 1;
-
-        const dimensions = ncurses.getDimensions();
-        for (1..dimensions.@"0") |x_usize| {
-            const x: u16 = @intCast(x_usize);
-            for (1..dimensions.@"1") |y_usize| {
-                const y: u16 = @intCast(y_usize);
-                const cell: bool = x * y % 3 == 0;
-                const char: u8 = if (cell) CELL_CHAR else EMPTY_CHAR;
-                try ncurses.setCharacterAt(x, y, char);
-            }
-        }
-
-        // try ncurses.moveCursor(@intCast(self.cursor_x), @intCast(self.cursor_y));
-        try ncurses.refreshScreen();
-
-        if (i < 100) {
-            i = 0;
-            continue;
-        }
-
-        const input = try ncurses.getInput();
-        try ncurses.setCharacterAt(0, 0, @intCast(input));
-        // switch (input) {
-        //     'q' => return,
-        //     else => {},
-        // }
-    }
-}

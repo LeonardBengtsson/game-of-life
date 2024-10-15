@@ -52,7 +52,6 @@ pub const Game = struct {
     }
 
     pub fn cycle(self: *Game) void {
-        // const size = self.sx * self.sy;
         for (0..self.sx) |x_usize| {
             const x: Size = @intCast(x_usize);
             for (0..self.sy) |y_usize| {
@@ -60,28 +59,6 @@ pub const Game = struct {
 
                 const pos = x + self.sx * y;
                 self.board[pos].neighbours = self.determineNeighbors(x, y) catch unreachable;
-                // var neighbors: u8 = 0;
-                // neighbors += self.isAlive((pos + size - self.sx) % size) catch unreachable;
-                // neighbors += self.isAlive((pos + self.sx) % size) catch unreachable;
-                // if (x == 0) {
-                //     neighbors += self.isAlive((pos + size - 1) % size) catch unreachable;
-                //     neighbors += self.isAlive((pos + self.sx - 1) % size) catch unreachable;
-                //     neighbors += self.isAlive((pos + 2 * self.sx - 1) % size) catch unreachable;
-                // } else {
-                //     neighbors += self.isAlive((pos + size - self.sx - 1) % size) catch unreachable;
-                //     neighbors += self.isAlive(pos - 1) catch unreachable;
-                //     neighbors += self.isAlive((pos + self.sx - 1) % size) catch unreachable;
-                // }
-                // if (x == self.sx - 1) {
-                //     neighbors += self.isAlive((pos + size - 2 * self.sx + 1) % size) catch unreachable;
-                //     neighbors += self.isAlive((pos + size - self.sx + 1) % size) catch unreachable;
-                //     neighbors += self.isAlive((pos + 1) % size) catch unreachable;
-                // } else {
-                //     neighbors += self.isAlive((pos + size + self.sx - 1) % size) catch unreachable;
-                //     neighbors += self.isAlive(pos + 1) catch unreachable;
-                //     neighbors += self.isAlive((pos + self.sx + 1) % size) catch unreachable;
-                // }
-                // self.board[pos].neighbours = neighbors;
             }
         }
         for (self.board) |*cell| {

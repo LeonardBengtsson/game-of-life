@@ -33,8 +33,6 @@ pub fn getDimensions() struct { u16, u16 } {
 
 pub fn setCharacterAt(x: u16, y: u16, char: u8) NCursesError!void {
     _ = c.mvaddch(@intCast(y), @intCast(x), @intCast(char));
-    // const result = c.mvaddch(@intCast(y), @intCast(x), @intCast(char));
-    // if (result == c.ERR) return NCursesError.SetCharacter;
 }
 
 pub fn moveCursor(x: u16, y: u16) NCursesError!void {
