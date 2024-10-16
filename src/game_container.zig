@@ -6,7 +6,7 @@ const init_patterns = @import("init_patterns.zig");
 
 const ALIVE_CELL_CHAR = 'O';
 const DEAD_CELL_CHAR = ' ';
-const DEFAULT_FPS = 20;
+const DEFAULT_FPS = 30;
 const DEFAULT_DELAY = 5 * std.time.ns_per_ms;
 const WRAP_CURSOR_MOVEMENT = true;
 

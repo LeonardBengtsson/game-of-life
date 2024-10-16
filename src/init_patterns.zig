@@ -32,3 +32,16 @@ pub fn stripes(sx: Size, _: Size, i: Size) bool {
 pub fn random(_: Size, _: Size, _: Size) bool {
     return if (rand) |r| r.boolean() else false;
 }
+
+pub fn gliderGrid(sx: Size, sy: Size, i: Size) bool {
+    const x = i % sx;
+    const y = i / sx;
+    if (x >= sx - @mod(sx, 5)) return false;
+    if (y >= sy - @mod(sy, 5)) return false;
+    const dx = @mod(x, 5);
+    const dy = @mod(y, 5);
+    if (dx == 0 and dy < 3) return true;
+    if (dx == 1 and dy == 0) return true;
+    if (dx == 2 and dy == 1) return true;
+    return false;
+}
