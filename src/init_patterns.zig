@@ -1,39 +1,29 @@
 const std = @import("std");
 
-const Size = @import("game_of_life.zig").Size;
+var prng = std.Random.DefaultPrng.init(1625953);
+const rand = prng.random();
 
-var rand: ?std.Random = null;
-
-pub fn initRandom() !void {
-    var r = std.Random.DefaultPrng.init(blk: {
-        var seed: u64 = undefined;
-        try std.posix.getrandom(std.mem.asBytes(&seed));
-        break :blk seed;
-    });
-    rand = r.random();
-}
-
-pub fn allDead(_: Size, _: Size, _: Size) bool {
+pub fn allDead(_: u32, _: u32, _: u32) bool {
     return false;
 }
 
-pub fn allAlive(_: Size, _: Size, _: Size) bool {
+pub fn allAlive(_: u32, _: u32, _: u32) bool {
     return true;
 }
 
-pub fn checkerboard(sx: Size, _: Size, i: Size) bool {
+pub fn checkerboard(sx: u32, _: u32, i: u32) bool {
     return i % 2 == (i / sx) % 2;
 }
 
-pub fn stripes(sx: Size, _: Size, i: Size) bool {
+pub fn stripes(sx: u32, _: u32, i: u32) bool {
     return (i % sx) % 2 == 0;
 }
 
-pub fn random(_: Size, _: Size, _: Size) bool {
-    return if (rand) |r| r.boolean() else false;
+pub fn random(_: u32, _: u32, _: u32) bool {
+    return rand.boolean();
 }
 
-pub fn gliderGrid(sx: Size, sy: Size, i: Size) bool {
+pub fn gliderGrid(sx: u32, sy: u32, i: u32) bool {
     const x = i % sx;
     const y = i / sx;
     if (x >= sx - @mod(sx, 5)) return false;

@@ -19,6 +19,7 @@ pub fn init() NCursesError!void {
 }
 
 pub fn deinit() void {
+    _ = c.curs_set(0);
     _ = c.endwin();
 }
 
@@ -31,7 +32,7 @@ pub fn getDimensions() struct { u16, u16 } {
     return .{ @intCast(c.COLS), @intCast(c.LINES) };
 }
 
-pub fn setCharacterAt(x: u16, y: u16, char: u8) NCursesError!void {
+pub fn setCharacterAt(x: u16, y: u16, char: u32) NCursesError!void {
     _ = c.mvaddch(@intCast(y), @intCast(x), @intCast(char));
 }
 

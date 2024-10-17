@@ -5,10 +5,6 @@ const Game = @import("game_of_life.zig").Game;
 const ncurses = @import("ncurses.zig");
 const init_patterns = @import("init_patterns.zig");
 
-const c = @cImport({
-    @cInclude("ncurses.h");
-});
-
 const INIT_PATTERN = init_patterns.allDead;
 
 pub fn main() !void {
@@ -20,9 +16,9 @@ pub fn main() !void {
     const allocator = arena.allocator();
 
     const dims = ncurses.getDimensions();
-    try init_patterns.initRandom();
-    var game = try Game.create(allocator, @intCast(dims.@"0"), @intCast(dims.@"1"), INIT_PATTERN);
+
+    var game = try Game.create(&allocator, @intCast(dims.@"0"), @intCast(dims.@"1"), INIT_PATTERN);
     defer game.deinit();
 
-    try game_container.start(&game);
+    try game_container.start(&game, &allocator);
 }
