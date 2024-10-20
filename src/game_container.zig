@@ -133,6 +133,9 @@ pub const GameContainer = struct {
                         self.cursor_mode = .normal;
                     }
                 },
+                '=' => {
+                    try render.clearScreen();
+                },
                 ncurses.KEY_UP, 'k' => try self.moveCursor(0, -1, WRAP_CURSOR_MOVEMENT),
                 ncurses.KEY_DOWN, 'j' => try self.moveCursor(0, 1, WRAP_CURSOR_MOVEMENT),
                 ncurses.KEY_LEFT, 'h' => try self.moveCursor(-1, 0, WRAP_CURSOR_MOVEMENT),

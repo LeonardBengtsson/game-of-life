@@ -46,3 +46,15 @@ pub fn textLine(y: u16, text: []const u16, colorPair: u16) !void {
     }
     try ncurses.colorPairOff(colorPair);
 }
+
+pub fn clearScreen() !void {
+    const w = ncurses.getWidth();
+    const h = ncurses.getHeight();
+    for (0..w) |x_usize| {
+        const x: u16 = @intCast(x_usize);
+        for (0..h) |y_usize| {
+            const y: u16 = @intCast(y_usize);
+            try ncurses.setCharacterAt(x, y, ' ');
+        }
+    }
+}
