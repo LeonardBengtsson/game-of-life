@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const ncurses = @import("ncurses.zig");
+const render = @import("render.zig");
 const init_patterns = @import("init_patterns.zig");
 
 const Allocator = std.mem.Allocator;
@@ -13,7 +14,7 @@ const c = @cImport({
     @cInclude("ncurses.h");
 });
 
-const ALIVE_CELL_CHAR = 'O';
+const ALIVE_CELL_CHAR = 0x25ca;
 const DEAD_CELL_CHAR = ' ';
 
 const DEFAULT_FPS = 30;
@@ -55,9 +56,7 @@ pub const GameContainer = struct {
             const input = try ncurses.getInput();
             switch (input) {
                 'Q' => {
-                    if (self.cursor_mode == .normal) {
-                        return;
-                    }
+                    return;
                 },
                 'D' => {
                     self.game.reset(init_patterns.allDead);
@@ -104,8 +103,10 @@ pub const GameContainer = struct {
                 },
                 'c' => {
                     if (self.cursor_mode == .select) {
+                        const pos = self.cursor_mode.select;
                         const region = try self.game.getSubRegion(self.allocator, self.cursor_mode.select, self.cursor_pos);
                         self.cursor_mode = .{ .paste = region };
+                        self.cursor_pos = Vec2{ .x = @min(pos.x, self.cursor_pos.x), .y = @min(pos.y, self.cursor_pos.y) };
                     }
                 },
                 'x' => {
@@ -114,7 +115,7 @@ pub const GameContainer = struct {
                         const region = try self.game.getSubRegion(self.allocator, self.cursor_mode.select, self.cursor_pos);
                         self.cursor_mode = .{ .paste = region };
                         try self.game.fillSubRegion(pos, self.cursor_pos, false);
-                        self.cursor_pos = pos;
+                        self.cursor_pos = Vec2{ .x = @min(pos.x, self.cursor_pos.x), .y = @min(pos.y, self.cursor_pos.y) };
                     }
                 },
                 'o' => {
@@ -164,83 +165,52 @@ pub const GameContainer = struct {
         }
     }
 
-    fn setBlinkingCharacter(blink: bool, x: u16, y: u16, char: u32) !void {
-        // if (blink != ((x + y) % 2 == 0)) {
-        if (blink) {
-            try ncurses.setCharacterAt(x, y, char);
-        }
-    }
-
     fn updateScreen(self: *GameContainer) !void {
+        try ncurses.colorPairOn(0);
         for (0..self.screen_w) |x_usize| {
             const x: u16 = @intCast(x_usize);
             for (0..self.screen_h) |y_usize| {
                 const y: u16 = @intCast(y_usize);
                 const cell: bool = self.game.getCell(x, y) catch continue;
-                const char: u8 = if (cell) ALIVE_CELL_CHAR else DEAD_CELL_CHAR;
+                const char: u16 = if (cell) ALIVE_CELL_CHAR else DEAD_CELL_CHAR;
                 try ncurses.setCharacterAt(x, y, char);
             }
         }
-
-        // @import("std").debug.print("UL: {}, UR: {}, LL: {}, LR: {}, H: {}, V: {}\n", .{ c.ACS_ULCORNER, c.ACS_URCORNER, c.ACS_LLCORNER, c.ACS_LRCORNER, c.ACS_HLINE, c.ACS_VLINE });
+        try ncurses.colorPairOff(0);
 
         const blink = @mod(std.time.milliTimestamp(), BLINKING_PERIOD_MS) < BLINKING_DURATION_MS;
         switch (self.cursor_mode) {
             .select => {
-                const x1 = @min(self.cursor_mode.select.x, self.cursor_pos.x);
-                const y1 = @min(self.cursor_mode.select.y, self.cursor_pos.y);
-                const x2 = @max(self.cursor_mode.select.x, self.cursor_pos.x);
-                const y2 = @max(self.cursor_mode.select.y, self.cursor_pos.y);
-
-                for (x1..(x2 + 1)) |x_usize| {
-                    const x: u16 = @intCast(x_usize);
-                    try setBlinkingCharacter(blink, @truncate(x), @truncate(y1), '-');
-                    try setBlinkingCharacter(blink, @truncate(x), @truncate(y2), '-');
+                if (blink) {
+                    const x1 = @min(self.cursor_mode.select.x, self.cursor_pos.x);
+                    const y1 = @min(self.cursor_mode.select.y, self.cursor_pos.y);
+                    const x2 = @max(self.cursor_mode.select.x, self.cursor_pos.x);
+                    const y2 = @max(self.cursor_mode.select.y, self.cursor_pos.y);
+                    try render.roundedBox(@truncate(x1), @truncate(y1), @truncate(x2), @truncate(y2), 2);
                 }
-                for (y1..(y2 + 1)) |y_usize| {
-                    const y: u16 = @intCast(y_usize);
-                    try setBlinkingCharacter(blink, @truncate(x1), @truncate(y), '|');
-                    try setBlinkingCharacter(blink, @truncate(x2), @truncate(y), '|');
-                }
-                try ncurses.setCharacterAt(@truncate(x1), @truncate(y1), '+');
-                try ncurses.setCharacterAt(@truncate(x2), @truncate(y1), '+');
-                try ncurses.setCharacterAt(@truncate(x1), @truncate(y2), '+');
-                try ncurses.setCharacterAt(@truncate(x2), @truncate(y2), '+');
             },
             .paste => {
                 const x1 = self.cursor_pos.x;
                 const y1 = self.cursor_pos.y;
                 const x2 = self.cursor_pos.x + self.cursor_mode.paste.sx - 1;
                 const y2 = self.cursor_pos.y + self.cursor_mode.paste.sy - 1;
-
-                for (x1..x2) |x_usize| {
-                    const x: u16 = @intCast(x_usize);
-                    for (y1..y2) |y_usize| {
-                        const y: u16 = @intCast(y_usize);
-                        const cell = try self.cursor_mode.paste.getCell(x - x1, y - y1);
-                        const char: u32 = if (cell) 'X' else '.';
-                        if (blink) try ncurses.setCharacterAt(@truncate(x), @truncate(y), char);
+                if (blink) {
+                    try ncurses.colorPairOn(3);
+                    for (x1..x2) |x_usize| {
+                        const x: u16 = @intCast(x_usize);
+                        for (y1..y2) |y_usize| {
+                            const y: u16 = @intCast(y_usize);
+                            const cell = try self.cursor_mode.paste.getCell(x - x1, y - y1);
+                            const char: u16 = if (cell) ALIVE_CELL_CHAR else DEAD_CELL_CHAR;
+                            try ncurses.setCharacterAt(@truncate(x), @truncate(y), char);
+                        }
                     }
+                    try ncurses.colorPairOff(3);
+                    try render.roundedBox(@truncate(x1), @truncate(y1), @truncate(x2), @truncate(y2), 3);
                 }
-
-                for (x1..(x2 + 1)) |x_usize| {
-                    const x: u16 = @intCast(x_usize);
-                    try setBlinkingCharacter(blink, @truncate(x), @truncate(y1), '=');
-                    try setBlinkingCharacter(blink, @truncate(x), @truncate(y2), '=');
-                }
-                for (y1..(y2 + 1)) |y_usize| {
-                    const y: u16 = @intCast(y_usize);
-                    try setBlinkingCharacter(blink, @truncate(x1), @truncate(y), 'H');
-                    try setBlinkingCharacter(blink, @truncate(x2), @truncate(y), 'H');
-                }
-                try setBlinkingCharacter(blink, @truncate(x1), @truncate(y1), 'X');
-                try setBlinkingCharacter(blink, @truncate(x2), @truncate(y1), 'X');
-                try setBlinkingCharacter(blink, @truncate(x1), @truncate(y2), 'X');
-                try setBlinkingCharacter(blink, @truncate(x2), @truncate(y2), 'X');
             },
             else => {},
         }
-
         try ncurses.moveCursor(@truncate(self.cursor_pos.x), @truncate(self.cursor_pos.y));
         try ncurses.refreshScreen();
     }

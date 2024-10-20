@@ -20,5 +20,14 @@ pub fn main() !void {
     var game = try Game.create(&allocator, @intCast(dims.@"0"), @intCast(dims.@"1"), INIT_PATTERN);
     defer game.deinit();
 
+    // default
+    try ncurses.initColorPair(0, .default, .default);
+    // info line
+    try ncurses.initColorPair(1, .black, .bright_white);
+    // selection
+    try ncurses.initColorPair(2, .blue, .default);
+    // pasting
+    try ncurses.initColorPair(3, .red, .default);
+
     try game_container.start(&game, &allocator);
 }

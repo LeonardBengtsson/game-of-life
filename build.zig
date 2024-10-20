@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.linkSystemLibrary("c");
-    exe.linkSystemLibrary("ncurses");
+    exe.linkSystemLibrary("ncursesw");
 
     b.installArtifact(exe);
 
