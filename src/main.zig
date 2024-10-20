@@ -15,9 +15,7 @@ pub fn main() !void {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    const dims = ncurses.getDimensions();
-
-    var game = try Game.create(&allocator, @intCast(dims.@"0"), @intCast(dims.@"1"), INIT_PATTERN);
+    var game = try Game.create(&allocator, ncurses.getWidth(), ncurses.getHeight(), INIT_PATTERN);
     defer game.deinit();
 
     // default

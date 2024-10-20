@@ -33,15 +33,15 @@ pub fn roundedBox(x1: u16, y1: u16, x2: u16, y2: u16, colorPair: u16) !void {
     try ncurses.colorPairOff(colorPair);
 }
 
-pub fn textLine(y: u16, text: []const u32, colorPair: u16) !void {
-    const dims = ncurses.getDimensions();
-    const w = dims.@"0";
-    const h = dims.@"1";
+pub fn textLine(y: u16, text: []const u16, colorPair: u16) !void {
+    const w = ncurses.getWidth();
+    const h = ncurses.getHeight();
     if (y >= h) return error.OutsideWindow;
 
     try ncurses.colorPairOn(colorPair);
-    for (text, 0..w) |ch, x_usize| {
+    for (0..w) |x_usize| {
         const x: u16 = @truncate(x_usize);
+        const ch = if (x >= text.len) ' ' else text[x];
         try ncurses.setCharacterAt(x, y, ch);
     }
     try ncurses.colorPairOff(colorPair);

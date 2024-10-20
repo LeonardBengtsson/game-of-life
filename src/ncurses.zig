@@ -53,8 +53,12 @@ pub fn getInput() NCursesError!c_uint {
     return if (in >= 0 and in != c.ERR) @intCast(in) else NCursesError.ReadInput;
 }
 
-pub fn getDimensions() struct { u16, u16 } {
-    return .{ @intCast(c.getmaxx(c.stdscr)), @intCast(c.getmaxy(c.stdscr)) };
+pub fn getWidth() u16 {
+    return @intCast(c.getmaxx(c.stdscr));
+}
+
+pub fn getHeight() u16 {
+    return @intCast(c.getmaxy(c.stdscr));
 }
 
 pub fn initColorPair(index: u16, foreground: Color, background: Color) NCursesError!void {

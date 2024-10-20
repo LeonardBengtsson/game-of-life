@@ -14,11 +14,13 @@ const c = @cImport({
     @cInclude("ncurses.h");
 });
 
+const VERSION = "0.0.4";
+
 const ALIVE_CELL_CHAR = 0x25ca;
 const DEAD_CELL_CHAR = ' ';
 
 const DEFAULT_FPS = 30;
-const DEFAULT_DELAY = 5 * std.time.ns_per_ms;
+const DEFAULT_DELAY = 10 * std.time.ns_per_ms;
 const BLINKING_PERIOD_MS = 1000;
 const BLINKING_DURATION_MS = 700;
 
@@ -49,9 +51,8 @@ pub const GameContainer = struct {
 
     fn inputLoop(self: *GameContainer) !void {
         while (self.running) {
-            const dimensions = ncurses.getDimensions();
-            self.screen_w = dimensions.@"0";
-            self.screen_h = dimensions.@"1";
+            self.screen_w = ncurses.getWidth();
+            self.screen_h = ncurses.getHeight() - 1;
 
             const input = try ncurses.getInput();
             switch (input) {
@@ -179,22 +180,20 @@ pub const GameContainer = struct {
         try ncurses.colorPairOff(0);
 
         const blink = @mod(std.time.milliTimestamp(), BLINKING_PERIOD_MS) < BLINKING_DURATION_MS;
-        switch (self.cursor_mode) {
-            .select => {
-                if (blink) {
+        if (blink) {
+            switch (self.cursor_mode) {
+                .select => {
                     const x1 = @min(self.cursor_mode.select.x, self.cursor_pos.x);
                     const y1 = @min(self.cursor_mode.select.y, self.cursor_pos.y);
                     const x2 = @max(self.cursor_mode.select.x, self.cursor_pos.x);
                     const y2 = @max(self.cursor_mode.select.y, self.cursor_pos.y);
                     try render.roundedBox(@truncate(x1), @truncate(y1), @truncate(x2), @truncate(y2), 2);
-                }
-            },
-            .paste => {
-                const x1 = self.cursor_pos.x;
-                const y1 = self.cursor_pos.y;
-                const x2 = self.cursor_pos.x + self.cursor_mode.paste.sx - 1;
-                const y2 = self.cursor_pos.y + self.cursor_mode.paste.sy - 1;
-                if (blink) {
+                },
+                .paste => {
+                    const x1 = self.cursor_pos.x;
+                    const y1 = self.cursor_pos.y;
+                    const x2 = self.cursor_pos.x + self.cursor_mode.paste.sx - 1;
+                    const y2 = self.cursor_pos.y + self.cursor_mode.paste.sy - 1;
                     try ncurses.colorPairOn(3);
                     for (x1..x2) |x_usize| {
                         const x: u16 = @intCast(x_usize);
@@ -207,10 +206,17 @@ pub const GameContainer = struct {
                     }
                     try ncurses.colorPairOff(3);
                     try render.roundedBox(@truncate(x1), @truncate(y1), @truncate(x2), @truncate(y2), 3);
-                }
-            },
-            else => {},
+                },
+                else => {},
+            }
         }
+
+        var utf8Buffer: [200]u8 = [_]u8{' '} ** 200;
+        _ = try std.fmt.bufPrint(&utf8Buffer, "Game of Life v{s} [{}x{}] | (Q)uit | (t)oggle | (p)ause | (w) step | ( ) select | Current Epoch: {}", .{ VERSION, self.screen_w, self.screen_h, self.game.epoch });
+        var utf16Buffer: [200]u16 = [_]u16{' '} ** 200;
+        _ = try std.unicode.utf8ToUtf16Le(&utf16Buffer, &utf8Buffer);
+        try render.textLine(ncurses.getHeight() - 1, &utf16Buffer, 1);
+
         try ncurses.moveCursor(@truncate(self.cursor_pos.x), @truncate(self.cursor_pos.y));
         try ncurses.refreshScreen();
     }
