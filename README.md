@@ -1,5 +1,10 @@
 Small-scale Game of Life implementation in Zig that runs directly in the terminal and uses keyboard input for controls. Simply build and run with `zig build run`.
 
+<div>
+  <img src="./gif/game-of-life-1.gif" width="49%">
+  <img src="./gif/game-of-life-2.gif" width="49%">
+</div>
+
 # Features
 - Copy/paste regions of cells
 - Fill/toggle regions of cells
